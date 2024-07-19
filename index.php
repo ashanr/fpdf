@@ -18,6 +18,79 @@ class PDF extends FPDF
         $this->SetTextColor(65, 64, 66);
         $this->MultiCell($row2_content_width, 3, utf8_decode("*Vàlid durant 1 any, sota la disponibilitat del restaurant i amb reserva prèvia.  El Restaurant l’Ó ofereix servei de migdia de dijous a diumenges, el servei de sopar, és únicament les nits de divendres i dissabte. *Vàlid durant 1 any, sota la disponibilitat del restaurant i amb reserva prèvia.  El Restaurant l’Ó ofereix servei de migdia de dijous a diumenges, el servei de sopar, és únicament les nits de divendres i dissabte. *Vàlid durant 1 any, sota la disponibilitat."), 0, 'L');
     }
+
+ function WriteHTML($html, $x = null, $y = null, $w = 0, $align = 'J')
+    {
+        if ($x !== null && $y !== null) {
+            $this->SetXY($x, $y);
+        }
+        
+        // HTML parser
+        $html = str_replace("\n", ' ', $html);
+        $a = preg_split('/<(.*)>/U', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+        foreach ($a as $i => $e)
+        {
+            if ($i % 2 == 0)
+            {
+                // Text
+                if ($w > 0) {
+                    $this->MultiCell($w, 5, $e, 0, $align);
+                } else {
+                    $this->Write(5, $e);
+                }
+            }
+            else
+            {
+                // Tag
+                if ($e[0] == '/')
+                    $this->CloseTag(strtoupper(substr($e, 1)));
+                else
+                {
+                    // Extract attributes
+                    $a2 = explode(' ', $e);
+                    $tag = strtoupper(array_shift($a2));
+                    $attr = array();
+                    foreach ($a2 as $v)
+                    {
+                        if (preg_match('/([^=]*)=["\']?([^"\']*)/', $v, $a3))
+                            $attr[strtoupper($a3[1])] = $a3[2];
+                    }
+                    $this->OpenTag($tag, $attr);
+                }
+            }
+        }
+    }
+
+
+    function OpenTag($tag, $attr)
+    {
+        // Opening tag
+        if ($tag == 'B' || $tag == 'I' || $tag == 'U')
+            $this->SetStyle($tag, true);
+        if ($tag == 'BR')
+            $this->Ln(5);
+    }
+
+    function CloseTag($tag)
+    {
+        // Closing tag
+        if ($tag == 'B' || $tag == 'I' || $tag == 'U')
+            $this->SetStyle($tag, false);
+    }
+
+    function SetStyle($tag, $enable)
+    {
+        // Apply style
+        $this->$tag += ($enable ? 1 : -1);
+        $style = '';
+        foreach (array('B', 'I', 'U') as $s)
+        {
+            if ($this->$s > 0)
+                $style .= $s;
+        }
+        $this->SetFont('', $style);
+    }
+
 }
 
 // Create instance of the PDF class
